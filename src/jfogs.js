@@ -508,7 +508,7 @@ for (#{index} = #{0}; #{index} < #{len} / #{2}; #{index}++) {
           name: name
         });
       }).join('\n');
-
+      expressions = mangleArguments(expressions);
       return format( /*#*/ function() {
         /*!
 var #{breakoutIdent} = {};
@@ -530,7 +530,7 @@ var #{breakoutIdent} = {};
         expressions: expressions.join(', ')
       });
     }
-
+    expressions = mangleArguments(expressions);
     return format( /*#*/ function() {
       /*!
 (function (#{names}) {
@@ -545,6 +545,12 @@ var #{breakoutIdent} = {};
       expressions: expressions.join(', ')
     });
     /*</jdists>*/
+  }
+
+  function mangleArguments(argList) {
+    return argList.map(function(value){
+      return '(function(){return ' + value + '}())';
+    });
   }
 
   exports.obfuscate = obfuscate;
