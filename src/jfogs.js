@@ -476,33 +476,33 @@ for (#{index} = #{0}; #{index} < #{len} / #{2}; #{index}++) {
         break;
       default:
         if (options.type !== false) {
-            var distracter = options.distracter || '"\u202e"';
-            params = {
-              rightToLeft: identFrom(guid++),
-              u202e: distracter
-            };
-            names.unshift(params.rightToLeft);
-            expressions.unshift(distracter); // 干扰字符
-            decryption += format( /*#*/ function() {
-              /*!
+          var distracter = options.distracter || '"\u202e"';
+          params = {
+            rightToLeft: identFrom(guid++),
+            u202e: distracter
+          };
+          names.unshift(params.rightToLeft);
+          expressions.unshift(distracter); // 干扰字符
+          decryption += format( /*#*/ function() {
+            /*!
     if (#{u202e} !== #{rightToLeft}) {
       return;
     }
             */
-            }, params);
+          }, params);
         }
         break;
     }
     if (options.breakout && breakoutVariants.length) {
 
       var breakoutIdent = identFrom(guid++);
-      var breakoutInside = breakoutVariants.map(function (name) {
+      var breakoutInside = breakoutVariants.map(function(name) {
         return format('#{ident}.#{name} = #{name};', {
           ident: breakoutIdent,
           name: name
         });
       }).join('\n');
-      var breakoutOutside = breakoutVariants.map(function (name) {
+      var breakoutOutside = breakoutVariants.map(function(name) {
         return format('var #{name} = #{ident}.#{name};', {
           ident: breakoutIdent,
           name: name
@@ -515,7 +515,7 @@ var #{breakoutIdent} = {};
   #{decryption}
   #{code}
   #{breakoutInside}
-}).apply(this,[#{expressions}]);
+}).call(this#{expressions});
 #{breakoutOutside}
      */
       }, {
@@ -526,7 +526,7 @@ var #{breakoutIdent} = {};
         names: names.join(', '),
         decryption: decryption,
         code: code,
-        expressions: expressions.join(', ')
+        expressions: expressions.length > 0 ? ', ' + expressions.join(', ') : ''
       });
     }
     return format( /*#*/ function() {
@@ -534,13 +534,13 @@ var #{breakoutIdent} = {};
 (function (#{names}) {
   #{decryption}
   #{code}
-}).apply(this,[#{expressions}]);
+}).call(this#{expressions});
      */
     }, {
       names: names.join(', '),
       decryption: decryption,
       code: code,
-      expressions: expressions.join(', ')
+        expressions: expressions.length > 0 ? ', ' + expressions.join(', ') : ''
     });
     /*</jdists>*/
   }
