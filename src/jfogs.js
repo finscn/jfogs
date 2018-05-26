@@ -61,6 +61,8 @@
 
     options = options || {};
     var prefix = options.prefix || '$fog$';
+    var seed = options.seed || Date.now();
+    var random = generateRandomFunction(seed);
 
     var includeMapping = false;
     if (options.mapping) {
@@ -72,6 +74,14 @@
     var thisVar = options.thisVar || 'this';
     var mappingName = options.mappingName || identFrom(guid++);
     exports.mappingName = mappingName;
+
+    function generateRandomFunction(seed) {
+      seed = seed || (Date.now() & 0xFFFFFF - 1);
+      return function() {
+        seed = (1103515245 * seed + 12345) & 2147483647;
+        return seed / 2147483648;
+      };
+    }
 
     function identFrom(index) {
       return prefix + (index).toString(16);
@@ -528,6 +538,9 @@ for (#{index} = #{0}; #{index} < #{len} / #{2}; #{index}++) {
       } else {
         expressions = [mappingName];
       }
+      assigns.sort(function(a,b){
+        return random() < 0.5;
+      });
       assigns = 'var ' + assigns.join(', ') + ';';
     }
 
