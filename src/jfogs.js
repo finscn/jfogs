@@ -57,8 +57,21 @@
     if (!code) {
       return code;
     }
+    var guid = 0;
+
     options = options || {};
     var prefix = options.prefix || '$fog$';
+
+    var includeMapping = false;
+    if (options.mapping) {
+      mapping = options.mapping;
+    } else {
+      mapping = [];
+      includeMapping = true;
+    }
+    var thisVar = options.thisVar || 'this';
+    var mappingName = options.mappingName || identFrom(guid++);
+    exports.mappingName = mappingName;
 
     function identFrom(index) {
       return prefix + index;
@@ -84,7 +97,6 @@
       });
     }
 
-    var guid = 0;
     var memberExpressions = [];
     var propertys = {};
     var names = [];
@@ -494,25 +506,29 @@ for (#{index} = #{0}; #{index} < #{len} / #{2}; #{index}++) {
         break;
     }
 
-    var argList = names;
-    var argCount = argList.length;
-    var mapping, assigns;
-    if (argCount > 0) {
-        mapping = {};
-        assigns = [];
-        var mappingName = identFrom(guid++);
-        argList.forEach(function(arg, idx) {
-            var key = identFrom(guid++);
-            mapping[key] = JSON.parse(expressions[idx]);
-            expressions[idx] = JSON.stringify(key);
-
-            var keyName = identFrom(guid++);
-            assigns.push(names[idx] + ' = ' + mappingName + '[' + keyName + ']');
-
-            argList[idx] = keyName;
-        });
-        mapping = 'var ' + mappingName + ' = ' + JSON.stringify(mapping) + ';';
-        assigns = 'var ' + assigns.join(', ') + ';';
+    var argv = [];
+    var mappingCode = '';
+    var assigns = '';
+    if (names.length > 0) {
+      assigns = [];
+      var _mappingInner = identFrom(guid++);
+      names.forEach(function(name, idx) {
+        var key = identFrom(guid++);
+        var property = JSON.parse(expressions[idx]);
+        var index = mapping.indexOf(property);
+        if (index === -1) {
+          index = mapping.length;
+          mapping.push(property);
+        }
+        assigns.push(name + ' = ' + _mappingInner + '[' + index + ']');
+      });
+      argv[0] = _mappingInner;
+      if (includeMapping) {
+        expressions = [JSON.stringify(mapping)];
+      } else {
+        expressions = [mappingName];
+      }
+      assigns = 'var ' + assigns.join(', ') + ';';
     }
 
     if (options.breakout && breakoutVariants.length) {
@@ -533,13 +549,13 @@ for (#{index} = #{0}; #{index} < #{len} / #{2}; #{index}++) {
       return format( /*#*/ function() {
         /*!
 var #{breakoutIdent} = {};
-(function (#{argList}) {
+(function (#{argv}) {
   #{mapping}
   #{assigns}
   #{decryption}
   #{code}
   #{breakoutInside}
-}).call(this#{expressions});
+}).call(#{thisVar}, #{expressions});
 #{breakoutOutside}
      */
       }, {
@@ -547,35 +563,43 @@ var #{breakoutIdent} = {};
         breakoutInside: breakoutInside,
         breakoutOutside: breakoutOutside,
 
-        argList: argList.join(', '),
-        mapping: mapping,
+        argv: argv.join(', '),
+        mapping: mappingCode,
         assigns: assigns,
         decryption: decryption,
         code: code,
-        expressions: expressions.length > 0 ? ', ' + expressions.join(', ') : ''
+        thisVar: thisVar,
+        expressions: expressions.join(', ') || 'undefined'
       });
     }
     return format( /*#*/ function() {
       /*!
-(function (#{argList}) {
+(function (#{argv}) {
   #{mapping}
   #{assigns}
   #{decryption}
   #{code}
-}).call(this#{expressions});
+}).call(#{thisVar}, #{expressions});
      */
     }, {
-      argList: argList.join(', '),
-      mapping: mapping,
+      argv: argv.join(', '),
+      mapping: mappingCode,
       assigns: assigns,
       decryption: decryption,
       code: code,
-      expressions: expressions.length > 0 ? ', ' + expressions.join(', ') : ''
+      thisVar: thisVar,
+      expressions: expressions.join(', ') || 'undefined'
     });
     /*</jdists>*/
   }
 
+  function generateMapping(map){
+    var n = exports.mappingName;
+    return (n.indexOf(".") > 0?'':'var ') + n + ' = ' + JSON.stringify(map) + ';';
+  }
+
   exports.obfuscate = obfuscate;
+  exports.generateMapping = generateMapping;
 
   if (typeof define === 'function') {
     if (define.amd || define.cmd) {
