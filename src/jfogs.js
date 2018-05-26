@@ -493,6 +493,28 @@ for (#{index} = #{0}; #{index} < #{len} / #{2}; #{index}++) {
         }
         break;
     }
+
+    var argList = names;
+    var argCount = argList.length;
+    var mapping, assigns;
+    if (argCount > 0) {
+        mapping = {};
+        assigns = [];
+        var mappingName = identFrom(guid++);
+        argList.forEach(function(arg, idx) {
+            var key = identFrom(guid++);
+            mapping[key] = JSON.parse(expressions[idx]);
+            expressions[idx] = JSON.stringify(key);
+
+            var keyName = identFrom(guid++);
+            assigns.push(names[idx] + ' = ' + mappingName + '[' + keyName + ']');
+
+            argList[idx] = keyName;
+        });
+        mapping = 'var ' + mappingName + ' = ' + JSON.stringify(mapping) + ';';
+        assigns = 'var ' + assigns.join(', ') + ';';
+    }
+
     if (options.breakout && breakoutVariants.length) {
 
       var breakoutIdent = identFrom(guid++);
@@ -511,7 +533,9 @@ for (#{index} = #{0}; #{index} < #{len} / #{2}; #{index}++) {
       return format( /*#*/ function() {
         /*!
 var #{breakoutIdent} = {};
-(function (#{names}) {
+(function (#{argList}) {
+  #{mapping}
+  #{assigns}
   #{decryption}
   #{code}
   #{breakoutInside}
@@ -523,7 +547,9 @@ var #{breakoutIdent} = {};
         breakoutInside: breakoutInside,
         breakoutOutside: breakoutOutside,
 
-        names: names.join(', '),
+        argList: argList.join(', '),
+        mapping: mapping,
+        assigns: assigns,
         decryption: decryption,
         code: code,
         expressions: expressions.length > 0 ? ', ' + expressions.join(', ') : ''
@@ -531,16 +557,20 @@ var #{breakoutIdent} = {};
     }
     return format( /*#*/ function() {
       /*!
-(function (#{names}) {
+(function (#{argList}) {
+  #{mapping}
+  #{assigns}
   #{decryption}
   #{code}
 }).call(this#{expressions});
      */
     }, {
-      names: names.join(', '),
+      argList: argList.join(', '),
+      mapping: mapping,
+      assigns: assigns,
       decryption: decryption,
       code: code,
-        expressions: expressions.length > 0 ? ', ' + expressions.join(', ') : ''
+      expressions: expressions.length > 0 ? ', ' + expressions.join(', ') : ''
     });
     /*</jdists>*/
   }
