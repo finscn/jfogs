@@ -74,7 +74,7 @@
     exports.mappingName = mappingName;
 
     function identFrom(index) {
-      return prefix + index;
+      return prefix + (index).toString(16);
     }
 
     code = String(code).replace(/\r\n?|[\n\u2028\u2029]/g, '\n')
